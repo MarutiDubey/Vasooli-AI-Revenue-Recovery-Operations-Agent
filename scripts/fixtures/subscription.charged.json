@@ -1,0 +1,77 @@
+{
+  "entity": "event",
+  "account_id": "acc_BFQ7uQEjo7iqBW",
+  "event": "subscription.charged",
+  "contains": [
+    "subscription",
+    "payment"
+  ],
+  "payload": {
+    "subscription": {
+      "entity": {
+        "id": "sub_sim_00000000000001",
+        "entity": "subscription",
+        "customer_id": "cust_sim_0000000001",
+        "plan_id": "plan_sim_0000000000001",
+        "status": "active",
+        "current_start": 1700000000,
+        "current_end": 1702592000,
+        "ended_at": null,
+        "quantity": 1,
+        "notes": [],
+        "charge_at": 1700000000,
+        "start_at": 1700000000,
+        "end_at": 1731542400,
+        "auth_attempts": 0,
+        "total_count": 12,
+        "paid_count": 1,
+        "customer_notify": 1,
+        "created_at": 1700000000,
+        "expire_by": 1731542400,
+        "short_url": "https://rzp.io/i/XfG3u",
+        "has_scheduled_changes": false,
+        "change_scheduled_at": null,
+        "source": "api",
+        "payment_method": "card",
+        "offer_id": null,
+        "remaining_count": 11
+      }
+    },
+    "payment": {
+      "entity": {
+        "id": "pay_sim_00000000000001",
+        "entity": "payment",
+        "amount": 99900,
+        "currency": "INR",
+        "status": "captured",
+        "order_id": "order_sim_0000000001",
+        "invoice_id": "inv_sim_00000000001",
+        "international": false,
+        "method": "card",
+        "amount_refunded": 0,
+        "refund_status": null,
+        "captured": true,
+        "description": "Subscription payment",
+        "card_id": "card_sim_0000000001",
+        "bank": null,
+        "wallet": null,
+        "vpa": null,
+        "email": "customer@example.com",
+        "contact": "+919999999999",
+        "notes": [],
+        "fee": 1998,
+        "tax": 0,
+        "error_code": null,
+        "error_description": null,
+        "error_source": null,
+        "error_step": null,
+        "error_reason": null,
+        "acquirer_data": {
+          "auth_code": "123456"
+        },
+        "created_at": 1700000000
+      }
+    }
+  },
+  "created_at": 1700000000
+}

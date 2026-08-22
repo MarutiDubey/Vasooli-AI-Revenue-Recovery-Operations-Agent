@@ -1,0 +1,46 @@
+{
+  "entity": "event",
+  "account_id": "acc_BFQ7uQEjo7iqBW",
+  "event": "payment.failed",
+  "contains": [
+    "payment"
+  ],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_sim_failed_000001",
+        "entity": "payment",
+        "amount": 99900,
+        "currency": "INR",
+        "status": "failed",
+        "order_id": "order_sim_0000000001",
+        "invoice_id": "inv_sim_00000000001",
+        "international": false,
+        "method": "card",
+        "amount_refunded": 0,
+        "refund_status": null,
+        "captured": false,
+        "description": "Subscription payment failed",
+        "card_id": "card_sim_0000000001",
+        "bank": null,
+        "wallet": null,
+        "vpa": null,
+        "email": "customer@example.com",
+        "contact": "+919876543210",
+        "notes": {
+          "subscription_id": "sub_sim_00000000000001"
+        },
+        "fee": null,
+        "tax": null,
+        "error_code": "BAD_REQUEST_ERROR",
+        "error_description": "Payment failed due to insufficient funds",
+        "error_source": "issuer",
+        "error_step": "payment_authorization",
+        "error_reason": "payment_failed",
+        "acquirer_data": {},
+        "created_at": 1700000000
+      }
+    }
+  },
+  "created_at": 1700000000
+}

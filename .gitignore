@@ -1,0 +1,35 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.db
+*.sqlite3
+vasooli.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Logs
+*.log
+cf_out.txt
+cloudflared_err.txt
+cloudflared_out.txt
+cf_err.txt
+
+# node_modules (root level)
+node_modules/
+package.json
+package-lock.json
+.npm-cache/

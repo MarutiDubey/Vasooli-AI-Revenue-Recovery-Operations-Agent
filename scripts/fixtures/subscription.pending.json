@@ -1,0 +1,41 @@
+{
+  "entity": "event",
+  "account_id": "acc_BFQ7uQEjo7iqBW",
+  "event": "subscription.pending",
+  "contains": [
+    "subscription"
+  ],
+  "payload": {
+    "subscription": {
+      "entity": {
+        "id": "sub_sim_00000000000001",
+        "entity": "subscription",
+        "customer_id": "cust_sim_0000000001",
+        "plan_id": "plan_sim_0000000000001",
+        "status": "pending",
+        "current_start": 1700000000,
+        "current_end": 1702592000,
+        "ended_at": null,
+        "quantity": 1,
+        "notes": [],
+        "charge_at": 1700000000,
+        "start_at": 1700000000,
+        "end_at": 1731542400,
+        "auth_attempts": 1,
+        "total_count": 12,
+        "paid_count": 0,
+        "customer_notify": 1,
+        "created_at": 1700000000,
+        "expire_by": 1731542400,
+        "short_url": "https://rzp.io/i/XfG3u",
+        "has_scheduled_changes": false,
+        "change_scheduled_at": null,
+        "source": "api",
+        "payment_method": "card",
+        "offer_id": null,
+        "remaining_count": 12
+      }
+    }
+  },
+  "created_at": 1700000000
+}
