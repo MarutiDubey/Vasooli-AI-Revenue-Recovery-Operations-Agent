@@ -21,10 +21,14 @@ async def get_stats():
 
         success_links = conn.execute("SELECT COUNT(*) FROM recovery_actions WHERE status = 'COMPLETED' AND action_type = 'ONE_TIME_RECOVERY'").fetchone()[0]
         
+        total_cash_recovered_paise = conn.execute("SELECT SUM(cash_amount) FROM recovery_outcomes WHERE cash_recovered = 1").fetchone()[0] or 0
+        total_cash_recovered = total_cash_recovered_paise / 100
+
         return {
             "total_cases": total_cases,
             "total_risk_inr": total_risk,
-            "success_links": success_links
+            "success_links": success_links,
+            "total_cash_recovered_inr": total_cash_recovered
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

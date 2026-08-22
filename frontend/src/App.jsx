@@ -73,6 +73,10 @@ function App() {
           <div className="stat-title">Payment Links Generated</div>
           <div className="stat-value">{stats?.success_links || 0}</div>
         </div>
+        <div className="stat-card">
+          <div className="stat-title">Cash Recovered (INR)</div>
+          <div className="stat-value" style={{color: 'var(--success-color)'}}>₹{(stats?.total_cash_recovered_inr || 0).toLocaleString()}</div>
+        </div>
       </div>
 
       <div className="table-container">

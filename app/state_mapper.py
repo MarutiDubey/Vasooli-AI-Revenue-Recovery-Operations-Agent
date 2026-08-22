@@ -111,6 +111,36 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
                     evaluate_action(case_row[0])
                     return
 
+        # Handle Payment Link Paid (Step 6 Verification)
+        if event_type == 'payment_link.paid':
+            plink_entity = payload_dict.get('payment_link', {}).get('entity', {})
+            plink_id = plink_entity.get('id')
+            amount_paid = plink_entity.get('amount_paid', 0)
+            
+            if plink_id:
+                cursor.execute('''
+                    SELECT case_id, id FROM recovery_actions 
+                    WHERE razorpay_resource_id = ?
+                ''', (plink_id,))
+                action_row = cursor.fetchone()
+                
+                if action_row:
+                    case_id, action_id = action_row
+                    # Mark Case as RECOVERED
+                    cursor.execute('''
+                        UPDATE recovery_cases 
+                        SET status = 'RECOVERED', updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    ''', (case_id,))
+                    
+                    # Record Verified Outcome
+                    cursor.execute('''
+                        INSERT INTO recovery_outcomes (case_id, action_id, cash_recovered, cash_amount)
+                        VALUES (?, ?, 1, ?)
+                    ''', (case_id, action_id, amount_paid))
+                    logger.info(f"Verified Cash Recovery for Case #{case_id}: Rs {amount_paid/100}")
+
+
         conn.commit()
     except Exception as e:
         logger.error(f"Error mapping state for event {event_id}: {e}")
