@@ -3,6 +3,7 @@ import json
 import logging
 from app.database import DB_PATH
 from app.action_executor import execute_pending_actions
+from app.ai_analyst import generate_recovery_message
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,13 @@ def evaluate_action(case_id: int):
         
         # Trigger Action Executor
         execute_pending_actions()
+
+        # Generate personalized recovery message for non-STOP cases
+        if final_decision != "STOP":
+            try:
+                generate_recovery_message(case_id)
+            except Exception as msg_err:
+                logger.warning(f"Message generation skipped for case {case_id}: {msg_err}")
         
     except Exception as e:
         logger.error(f"Policy Engine failed for case {case_id}: {e}")

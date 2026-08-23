@@ -33,3 +33,7 @@ node_modules/
 package.json
 package-lock.json
 .npm-cache/
+
+# Documentation & Planning files (exclude all MD except README)
+*.md
+!README.md

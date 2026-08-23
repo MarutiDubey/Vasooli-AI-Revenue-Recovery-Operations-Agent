@@ -69,12 +69,20 @@ def init_db():
             ai_recommendation TEXT,
             policy_decision TEXT,
             policy_override_reason TEXT,
+            recovery_score INTEGER DEFAULT 0,
+            recovery_message TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (subscription_id) REFERENCES subscriptions(id),
             FOREIGN KEY (customer_id) REFERENCES customers(id)
         )
     ''')
+    # Safe migrations for existing databases
+    for col, defn in [("recovery_score", "INTEGER DEFAULT 0"), ("recovery_message", "TEXT")]:
+        try:
+            cursor.execute(f"ALTER TABLE recovery_cases ADD COLUMN {col} {defn}")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
     # Create recovery_actions table
     cursor.execute('''
