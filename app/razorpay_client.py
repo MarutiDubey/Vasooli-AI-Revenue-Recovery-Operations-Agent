@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def create_payment_link(amount: int, customer_name: str, customer_email: str, customer_contact: str, description: str):
+def create_payment_link(amount: int, customer_name: str, customer_email: str, customer_contact: str, description: str, accept_partial: bool = False, first_min_partial_amount: int = None):
     """
     Creates a Razorpay Payment Link using standard API.
     If keys are missing, simulates the API call.
@@ -24,7 +24,7 @@ def create_payment_link(amount: int, customer_name: str, customer_email: str, cu
     payload = {
         "amount": amount,
         "currency": "INR",
-        "accept_partial": False,
+        "accept_partial": accept_partial,
         "description": description,
         "customer": {
             "name": customer_name,
@@ -38,6 +38,10 @@ def create_payment_link(amount: int, customer_name: str, customer_email: str, cu
         "reminder_enable": True
     }
     
+    if accept_partial and first_min_partial_amount:
+        payload["first_min_partial_amount"] = first_min_partial_amount
+        
+
     try:
         response = requests.post(url, json=payload, auth=(key_id, key_secret), timeout=10)
         response.raise_for_status()

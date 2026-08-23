@@ -17,13 +17,15 @@ function ScoreBadge({ score }) {
 
 function ActionBadge({ action }) {
   const map = {
-    ONE_TIME_RECOVERY: 'action-recovery',
-    MONITOR: 'action-monitor',
-    ESCALATE: 'action-escalate',
-    STOP: 'action-stop',
-    PAYMENT_METHOD_RECOVERY: 'action-pmr',
+    ONE_TIME_RECOVERY: { class: 'action-recovery', label: 'ONE TIME RECOVERY' },
+    ONE_TIME_RECOVERY_PARTIAL: { class: 'action-partial', label: 'PARTIAL ENABLED' },
+    MONITOR: { class: 'action-monitor', label: 'MONITOR' },
+    ESCALATE: { class: 'action-escalate', label: 'ESCALATE' },
+    STOP: { class: 'action-stop', label: 'STOP' },
+    PAYMENT_METHOD_RECOVERY: { class: 'action-pmr', label: 'PAYMENT METHOD RECOVERY' },
   };
-  return <span className={`action-badge ${map[action] || 'action-monitor'}`}>{action?.replace(/_/g, ' ')}</span>;
+  const badge = map[action] || { class: 'action-monitor', label: action?.replace(/_/g, ' ') };
+  return <span className={`action-badge ${badge.class}`}>{badge.label}</span>;
 }
 
 function CopyButton({ text }) {

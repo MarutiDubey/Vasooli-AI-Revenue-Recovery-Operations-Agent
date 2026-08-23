@@ -112,17 +112,19 @@ Available Actions:
 - STOP: Opted out or mandate cancelled. Do not contact.
 - PAYMENT_METHOD_RECOVERY: Card or UPI issue requires a new mandate/update.
 - ONE_TIME_RECOVERY: Subscription halted; one-off payment needed via Payment Link.
+- ONE_TIME_RECOVERY_PARTIAL: Subscription halted; one-off payment needed but customer has insufficient funds, allow them to pay 30% to avoid churn.
 
 Rules:
 - If Customer Opt-Out Status is True, action MUST be STOP.
 - If amount > 5000000 paise (50,000 INR) and reason is unclear, ESCALATE.
+- If diagnosis indicates insufficient funds and amount > 100000 paise (1,000 INR), lean towards ONE_TIME_RECOVERY_PARTIAL to allow the user to pay 30% now and keep the subscription active.
 - If Recovery Score < 20, lean towards ESCALATE or STOP.
 
 Output strictly valid JSON only (no markdown):
 {{
     "diagnosis": "string",
     "priority": "HIGH|MEDIUM|LOW",
-    "recommended_action": "MONITOR|ESCALATE|STOP|PAYMENT_METHOD_RECOVERY|ONE_TIME_RECOVERY",
+    "recommended_action": "MONITOR|ESCALATE|STOP|PAYMENT_METHOD_RECOVERY|ONE_TIME_RECOVERY|ONE_TIME_RECOVERY_PARTIAL",
     "follow_up_hours": 24,
     "stop_conditions": ["string"],
     "reason": "string",
@@ -207,6 +209,7 @@ Customer Info:
 
 Instructions:
 - If action is ONE_TIME_RECOVERY: mention a secure payment link will be/has been sent
+- If action is ONE_TIME_RECOVERY_PARTIAL: Explicitly state that we understand funds might be low, so we have enabled a "Partial Payment" option allowing them to pay just 30% of the amount for now to keep their service active.
 - If action is MONITOR: reassure them, say it may resolve automatically, no action needed
 - If action is PAYMENT_METHOD_RECOVERY: ask them to update their payment method
 - If action is ESCALATE: tell them a team member will reach out

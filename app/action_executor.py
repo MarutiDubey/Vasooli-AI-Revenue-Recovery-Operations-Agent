@@ -44,6 +44,28 @@ def execute_pending_actions():
                         WHERE id = ?
                     ''', (action_id,))
                     logger.error(f"Failed to create Payment Link for Case {case_id}")
+                    
+            elif action_type == 'ONE_TIME_RECOVERY_PARTIAL':
+                desc = f"Vasooli Partial Revenue Recovery for Case {case_id}"
+                # minimum partial amount set to roughly 33%
+                min_partial = amount // 3
+                plink_response = create_payment_link(amount, name, email, contact, desc, accept_partial=True, first_min_partial_amount=min_partial)
+                
+                if plink_response:
+                    plink_id = plink_response.get('id')
+                    cursor.execute('''
+                        UPDATE recovery_actions
+                        SET status = 'COMPLETED', razorpay_resource_id = ?, executed_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    ''', (plink_id, action_id))
+                    logger.info(f"Partial Payment Link {plink_id} created for Case {case_id} (Min: {min_partial})")
+                else:
+                    cursor.execute('''
+                        UPDATE recovery_actions
+                        SET status = 'FAILED', executed_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    ''', (action_id,))
+                    logger.error(f"Failed to create Partial Payment Link for Case {case_id}")
 
             elif action_type in ['ESCALATE', 'STOP', 'MONITOR', 'PAYMENT_METHOD_RECOVERY']:
                 cursor.execute('''

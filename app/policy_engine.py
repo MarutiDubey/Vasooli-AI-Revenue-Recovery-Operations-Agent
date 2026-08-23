@@ -56,7 +56,7 @@ def evaluate_action(case_id: int):
         elif amount_at_risk > 5000000: # 50,000 INR limit
             final_decision = "ESCALATE"
             override_reason = "Rule 6: amount > escalation_threshold (50k)"
-        elif ai_action not in ["MONITOR", "ESCALATE", "STOP", "PAYMENT_METHOD_RECOVERY", "ONE_TIME_RECOVERY"]:
+        elif ai_action not in ["MONITOR", "ESCALATE", "STOP", "PAYMENT_METHOD_RECOVERY", "ONE_TIME_RECOVERY", "ONE_TIME_RECOVERY_PARTIAL"]:
             final_decision = "ESCALATE"
             override_reason = f"Rule 7: unsupported_action_requested ({ai_action})"
         else:
