@@ -166,6 +166,57 @@ body {
 .stat-value.orange { color: var(--orange); }
 .stat-value.red { color: var(--red); }
 
+/* ───────── AI Insights Panel ───────── */
+.insights-panel {
+  margin: 24px 32px 0;
+  background: linear-gradient(to right, #f4f8fd, #fcfcfd);
+  border: 1px solid #dbeafe;
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  box-shadow: var(--shadow);
+}
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.insights-icon {
+  color: var(--accent);
+  font-size: 16px;
+}
+.insights-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.insights-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.insight-item {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.insight-item strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.highlight-tag {
+  background: var(--blue-bg);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+  border: 1px solid rgba(49, 130, 206, 0.2);
+}
+
 /* ───────── Table ───────── */
 .table-wrapper {
   margin: 24px 32px 32px;

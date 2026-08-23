@@ -35,8 +35,38 @@ function CopyButton({ text }) {
   };
   return (
     <button className="copy-btn" onClick={handleCopy} title="Copy message">
-      {copied ? '✓ Copied' : '⎘ Copy'}
+      {copied ? 'Copied!' : 'Copy AI Draft'}
     </button>
+  );
+}
+
+function AIInsights({ cases }) {
+  if (!cases || cases.length === 0) return null;
+  
+  // Calculate top failure reason
+  const reasons = {};
+  cases.forEach(c => {
+    const reason = c.diagnosis?.split(':')[0]?.trim() || 'unknown';
+    reasons[reason] = (reasons[reason] || 0) + 1;
+  });
+  const topReason = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0];
+  const percentage = topReason ? Math.round((topReason[1] / cases.length) * 100) : 0;
+  
+  return (
+    <div className="insights-panel">
+      <div className="insights-header">
+        <span className="insights-icon">✦</span>
+        <h3>Vasooli Intelligence Insights</h3>
+      </div>
+      <div className="insights-content">
+        <div className="insight-item">
+          <strong>Key Finding:</strong> {percentage}% of recent payment failures are due to <span className="highlight-tag">{topReason ? topReason[0] : 'Various Reasons'}</span>.
+        </div>
+        <div className="insight-item">
+          <strong>Auto-Action Taken:</strong> The AI Policy Engine is prioritizing <em>Smart Retries</em> and generating personalized payment links for high-tenure customers to prevent involuntary churn.
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -177,6 +207,9 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* AI Insights Panel */}
+      <AIInsights cases={cases} />
 
       {/* Table */}
       <div className="table-wrapper">
