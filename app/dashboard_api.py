@@ -134,7 +134,7 @@ async def simulate_payment_failure():
         cursor.execute('''
             INSERT OR IGNORE INTO customers (external_id, name, email, contact, tenure_days, opt_out)
             VALUES (?, ?, ?, ?, ?, 0)
-        ''', (f"demo_{ts}", f"Demo User {ts}", f"demo_{ts}@vasooli.test", "9999999999", random.randint(30, 900)))
+        ''', (f"demo_{ts}", f"Demo User {ts}", f"demo_{ts}@vasooli.test", "9876543210", random.randint(30, 900)))
         raw_conn.commit()
 
         cursor.execute("SELECT id FROM customers WHERE external_id = ?", (f"demo_{ts}",))

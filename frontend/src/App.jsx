@@ -298,7 +298,7 @@ function App() {
               {cases.length === 0 && (
                 <tr>
                   <td colSpan="8" className="empty-state">
-                    No cases yet. Press "Simulate Payment Failure" to see the pipeline in action.
+                    No cases currently in the pipeline.
                   </td>
                 </tr>
               )}
