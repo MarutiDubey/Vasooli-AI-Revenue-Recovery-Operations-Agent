@@ -49,16 +49,16 @@ def evaluate_action(case_id: int):
         
         if opt_out:
             final_decision = "STOP"
-            override_reason = "Rule 1: customer_opt_out = True"
+            override_reason = "Customer opted out of recovery communications"
         elif sub_state == "cancelled":
             final_decision = "STOP"
-            override_reason = "Rule 4: subscription_state = cancelled"
-        elif amount_at_risk > 5000000: # 50,000 INR limit
+            override_reason = "Subscription status is cancelled"
+        elif amount_at_risk > 5000000:
             final_decision = "ESCALATE"
-            override_reason = "Rule 6: amount > escalation_threshold (50k)"
+            override_reason = "Amount exceeds escalation threshold (₹50,000)"
         elif ai_action not in ["MONITOR", "ESCALATE", "STOP", "PAYMENT_METHOD_RECOVERY", "ONE_TIME_RECOVERY", "ONE_TIME_RECOVERY_PARTIAL"]:
             final_decision = "ESCALATE"
-            override_reason = f"Rule 7: unsupported_action_requested ({ai_action})"
+            override_reason = f"Unsupported recovery action ({ai_action})"
         else:
             final_decision = ai_action
             

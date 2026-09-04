@@ -58,7 +58,6 @@ async def razorpay_webhook(
         
     payload = await request.body()
     
-    # 1. HMAC-SHA256 signature verification using raw payload
     expected_signature = hmac.new(
         key=RAZORPAY_WEBHOOK_SECRET.encode('utf-8'),
         msg=payload,
@@ -69,7 +68,6 @@ async def razorpay_webhook(
         logger.error("Invalid signature")
         raise HTTPException(status_code=400, detail="Invalid signature")
 
-    # 2. Parse JSON
     try:
         data = json.loads(payload.decode('utf-8'))
     except json.JSONDecodeError:
@@ -78,18 +76,14 @@ async def razorpay_webhook(
 
     event_type = data.get('event')
     
-    # Fallback to get event_id from payload if header is missing
     event_id = x_razorpay_event_id or data.get('account_id', 'unknown') + "_" + event_type
     
-    # Extract IDs safely
     payload_dict = data.get('payload', {})
     subscription_id = payload_dict.get('subscription', {}).get('entity', {}).get('id')
     payment_id = payload_dict.get('payment', {}).get('entity', {}).get('id')
 
-    # Hash the payload to store it
     payload_hash = hashlib.sha256(payload).hexdigest()
     
-    # 3. Store verified events with deduplication
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
@@ -104,7 +98,6 @@ async def razorpay_webhook(
         else:
             process_webhook_event(event_id, event_type, payload_dict)
     except sqlite3.IntegrityError:
-        # Duplicate event_id, idempotent response (Requirement: return 200 within 5 seconds)
         logger.info(f"Duplicate event ignored: {event_id}")
         return {"status": "ok", "message": "Duplicate event ignored"}
     finally:

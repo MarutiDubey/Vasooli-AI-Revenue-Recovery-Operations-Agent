@@ -52,7 +52,7 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
         if subscription_id:
             if internal_customer_id:
                 plan_id = subscription_data.get('plan_id', 'unknown')
-                amount = 99900 # Rs 999 Default for test
+                amount = 99900
                 state = subscription_data.get('status', 'unknown')
                 
                 cursor.execute('''
@@ -68,7 +68,7 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
             if row:
                 internal_subscription_id = row[0]
 
-        # Handle Recovery Case Creation (Pending / Halted)
+        # Handle subscription status transition
         if event_type in ['subscription.pending', 'subscription.halted'] and internal_subscription_id:
             cursor.execute('''
                 SELECT id FROM recovery_cases 
@@ -90,21 +90,19 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
                     SET processed_at = CURRENT_TIMESTAMP 
                     WHERE event_id = ?
                 ''', (event_id,))
-                # Close connection before synchronous pipeline calls to avoid DB locks
                 conn.commit()
                 conn.close()
                 diagnose_case(case_id)
                 evaluate_action(case_id)
-                return # Stop normal flow since we closed conn
+                return
 
-        # Handle Payment Failed
+        # Handle Payment Failure
         if event_type == 'payment.failed':
             error_reason = payment_data.get('error_reason') or payment_data.get('error_code') or 'payment_failed'
             error_description = payment_data.get('error_description') or 'Payment failed'
             full_diagnosis = f"{error_reason}: {error_description}"
             pay_amount = payment_data.get('amount') or 99900
 
-            # 1. Ensure customer exists
             if not internal_customer_id:
                 cust_email = payment_data.get('email') or 'customer@example.com'
                 cust_contact = payment_data.get('contact') or '+919876543210'
@@ -120,7 +118,6 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
                 row = cursor.fetchone()
                 internal_customer_id = row[0] if row else 1
 
-            # 2. Ensure subscription exists
             if not internal_subscription_id:
                 sub_ext_id = subscription_id or f"sub_{payment_data.get('id', 'default')}"
                 cursor.execute('''
@@ -132,7 +129,6 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
                 row = cursor.fetchone()
                 internal_subscription_id = row[0] if row else 1
 
-            # 3. Check if active case exists, or create new
             cursor.execute('''
                 SELECT id FROM recovery_cases 
                 WHERE subscription_id = ? AND status NOT IN ('RECOVERED', 'STOPPED')
@@ -166,7 +162,7 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
             evaluate_action(case_id)
             return
 
-        # Handle Payment Link Paid (Step 6 Verification)
+        # Handle Payment Link Paid Verification
         if event_type == 'payment_link.paid':
             plink_entity = payload_dict.get('payment_link', {}).get('entity', {})
             plink_id = plink_entity.get('id')

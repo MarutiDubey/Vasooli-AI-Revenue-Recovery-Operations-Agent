@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 TOKENIN_BASE_URL = os.getenv("TOKENIN_BASE_URL", "https://tokenin.my.id/v1/chat/completions")
 TOKENIN_MODEL = os.getenv("TOKENIN_MODEL", "nvidia/meta/llama-3.2-11b-vision-instruct")
 
-OMNIROUTE_BASE_URL = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1/chat/completions")
-OMNIROUTE_MODEL = os.getenv("OMNIROUTE_MODEL", "nvidia/nvidia/nemotron-3-super-120b-a12b")
+LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1/chat/completions"))
+LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", os.getenv("OMNIROUTE_MODEL", "nvidia/nvidia/nemotron-3-super-120b-a12b"))
 
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "omniroute")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter")
 
 
 class RecoveryRecommendation(BaseModel):
@@ -31,15 +31,12 @@ class RecoveryRecommendation(BaseModel):
 
 
 def _call_llm(prompt: str, max_tokens: int = 500) -> str | None:
-    """
-    Calls configured LLM provider (OpenRouter or TokenIn).
-    Returns the raw text content or None on failure.
-    """
+    """Executes chat completion request against configured LLM endpoint."""
     provider = os.getenv("LLM_PROVIDER", "openrouter").lower()
 
-    if provider == "omniroute":
-        url = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1/chat/completions")
-        model = os.getenv("OMNIROUTE_MODEL", "nvidia/openai/gpt-oss-20b")
+    if provider in ["local", "custom", "omniroute"]:
+        url = os.getenv("LOCAL_LLM_BASE_URL", os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1/chat/completions"))
+        model = os.getenv("LOCAL_LLM_MODEL", os.getenv("OMNIROUTE_MODEL", "nvidia/nvidia/nemotron-3-super-120b-a12b"))
         headers = {
             "Content-Type": "application/json",
         }
@@ -100,10 +97,7 @@ def _call_llm(prompt: str, max_tokens: int = 500) -> str | None:
 
 def diagnose_case(case_id: int):
     """
-    Step 1 of the AI pipeline:
-    - Calculates recovery_score (deterministic, instant)
-    - Calls LLM for structured diagnosis + recommended action
-    - Saves both to DB
+    Computes recovery score, runs LLM root-cause diagnosis, and records recommendation.
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -207,10 +201,7 @@ Output strictly valid JSON only (no markdown):
 
 def generate_recovery_message(case_id: int):
     """
-    Step 2 of the AI pipeline (runs after policy approval):
-    - Generates a short, personalized WhatsApp/SMS-style recovery message
-    - Only for non-STOP cases
-    - Saves to recovery_cases.recovery_message
+    Generates personalized customer recovery communication draft for operations dispatch.
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
