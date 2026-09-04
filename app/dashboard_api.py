@@ -54,7 +54,7 @@ async def get_stats():
 
 
 @router.get("/api/cases")
-async def get_cases():
+async def get_cases(limit: int = 50):
     conn = get_db_connection()
     try:
         query = '''
@@ -82,8 +82,9 @@ async def get_cases():
                 ORDER BY id DESC LIMIT 1
             )
             ORDER BY rc.id DESC
+            LIMIT ?
         '''
-        cases = conn.execute(query).fetchall()
+        cases = conn.execute(query, (limit,)).fetchall()
 
         result = []
         for case in cases:

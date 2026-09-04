@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
+import DocsView from './DocsView';
+import FAQView from './FAQView';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://127.0.0.1:8000/api';
 
 function ScoreBadge({ score }) {
   const color = score >= 70 ? 'score-high' : score >= 40 ? 'score-medium' : 'score-low';
@@ -73,6 +75,7 @@ function AIInsights({ cases }) {
 }
 
 function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState(null);
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +83,6 @@ function App() {
   const [simResult, setSimResult] = useState(null);
   const [newCaseId, setNewCaseId] = useState(null);
   const [expandedMsg, setExpandedMsg] = useState(null);
-  const highlightRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -89,10 +91,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (newCaseId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (newCaseId) {
+      const timer = setTimeout(() => setNewCaseId(null), 8000);
+      return () => clearTimeout(timer);
     }
-  }, [newCaseId, cases]);
+  }, [newCaseId]);
 
   const fetchData = async () => {
     try {
@@ -142,18 +145,68 @@ function App() {
       {/* Header */}
       <header className="header">
         <div className="header-left">
-          <div className="logo">
-            <div>
-              <h1>Vasooli AI</h1>
-              <p className="header-sub">Revenue Recovery Operations Center</p>
+          <div 
+            className="logo-container" 
+            style={{ display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer' }}
+            onClick={() => setActiveTab('dashboard')}
+            title="Click to go to Live Dashboard"
+          >
+            <img src="/rzp_logo.png" alt="Razorpay" style={{ height: '40px', objectFit: 'contain' }} />
+            <div className="logo-text" style={{ display: 'flex', flexDirection: 'column' }}>
+              <h1 style={{ margin: 0, lineHeight: '1' }}>Vasooli AI</h1>
+              <p className="header-sub" style={{ margin: 0, marginTop: '4px' }}>Revenue Recovery Operations Center</p>
             </div>
           </div>
         </div>
+
+        {/* Center Navbar Tabs */}
+        <nav className="header-nav">
+          <button
+            className={`nav-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+            id="nav-tab-dashboard"
+          >
+            <svg className="nav-tab-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="9" />
+              <rect x="14" y="3" width="7" height="5" />
+              <rect x="14" y="12" width="7" height="9" />
+              <rect x="3" y="16" width="7" height="5" />
+            </svg>
+            Operations Dashboard
+          </button>
+          <button
+            className={`nav-tab-btn ${activeTab === 'docs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('docs')}
+            id="nav-tab-docs"
+          >
+            <svg className="nav-tab-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+            Architecture & Docs
+          </button>
+          <button
+            className={`nav-tab-btn ${activeTab === 'faq' ? 'active' : ''}`}
+            onClick={() => setActiveTab('faq')}
+            id="nav-tab-faq"
+          >
+            <svg className="nav-tab-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Interview FAQ
+          </button>
+        </nav>
+
         <div className="header-right">
           <span className="status-pill">Live</span>
           <button
             className={`simulate-btn ${simulating ? 'simulating' : ''}`}
-            onClick={handleSimulate}
+            onClick={() => {
+              if (activeTab !== 'dashboard') setActiveTab('dashboard');
+              handleSimulate();
+            }}
             disabled={simulating}
             id="simulate-payment-failure-btn"
           >
@@ -174,8 +227,25 @@ function App() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
+      {/* View Routing */}
+      {activeTab === 'docs' && (
+        <DocsView 
+          onGoToFaq={() => setActiveTab('faq')} 
+          onGoToDashboard={() => setActiveTab('dashboard')} 
+        />
+      )}
+
+      {activeTab === 'faq' && (
+        <FAQView 
+          onGoToDocs={() => setActiveTab('docs')} 
+          onGoToDashboard={() => setActiveTab('dashboard')} 
+        />
+      )}
+
+      {activeTab === 'dashboard' && (
+        <>
+          {/* Stats Grid */}
+          <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-body">
             <div className="stat-label">Total Cases</div>
@@ -238,7 +308,6 @@ function App() {
                 return (
                   <tr
                     key={c.case_id}
-                    ref={isNew ? highlightRef : null}
                     className={isNew ? 'row-highlight' : ''}
                   >
                     <td className="case-id">#{c.case_id}</td>
@@ -306,6 +375,8 @@ function App() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

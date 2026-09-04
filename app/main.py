@@ -12,6 +12,7 @@ from app.dashboard_api import router as dashboard_router
 
 load_dotenv()
 
+# Vasooli Revenue Recovery Control Tower
 app = FastAPI(title="Vasooli - AI Revenue Recovery")
 
 app.add_middleware(

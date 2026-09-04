@@ -9,8 +9,8 @@ from app.scoring import calculate_recovery_score
 
 logger = logging.getLogger(__name__)
 
-TOKENIN_BASE_URL = "http://localhost:20128/v1/chat/completions"
-TOKENIN_MODEL = "nvidia/meta/llama-3.2-11b-vision-instruct" # Fast, non-reasoning model for clean output
+TOKENIN_BASE_URL = os.getenv("TOKENIN_BASE_URL", "https://tokenin.my.id/v1/chat/completions")
+TOKENIN_MODEL = os.getenv("TOKENIN_MODEL", "nvidia/meta/llama-3.2-11b-vision-instruct")
 
 
 class RecoveryRecommendation(BaseModel):
@@ -24,12 +24,12 @@ class RecoveryRecommendation(BaseModel):
 
 
 def _get_api_key():
-    return os.getenv("TOKENIN_API_KEY")
+    return os.getenv("TOKENIN_API_KEY", "sk-598ae28f02e3d276a0dedc0e0d981dd8b624c843")
 
 
-def _call_llm(prompt: str, max_tokens: int = 300) -> str | None:
+def _call_llm(prompt: str, max_tokens: int = 500) -> str | None:
     """
-    Shared helper to call the TokenIn LLM.
+    Shared helper to call the TokenIn LLM (Llama 3.2).
     Returns the raw text content or None on failure.
     """
     api_key = _get_api_key()
@@ -47,7 +47,6 @@ def _call_llm(prompt: str, max_tokens: int = 300) -> str | None:
         "max_tokens": max_tokens,
     }
     try:
-        # Increased timeout to 60s because massive models (120B/550B) take longer to respond
         resp = requests.post(TOKENIN_BASE_URL, headers=headers, json=data, timeout=60)
         resp.raise_for_status()
         
@@ -150,14 +149,15 @@ Output strictly valid JSON only (no markdown):
     "confidence": 0.95
 }}
 """
-        content = _call_llm(prompt, max_tokens=300)
+        content = _call_llm(prompt, max_tokens=2048)
         if not content:
             _fallback_escalate(case_id, "LLM call returned empty response")
             return
 
         # Strip markdown fences if present
         if "```" in content:
-            content = content.split("```")[1]
+            parts = content.split("```")
+            content = parts[1]
             if content.startswith("json"):
                 content = content[4:]
         content = content.strip()
@@ -235,11 +235,20 @@ Instructions:
 - Be warm, empathetic. Do NOT use marketing language or urgency pressure.
 - Output ONLY the message text. No subject line. No greeting prefix.
 """
-        # MOCK FOR DEMO: Bypass LLM to ensure perfect response instantly
-        if policy_decision == "ONE_TIME_RECOVERY_PARTIAL":
-            message = f"Hi {first_name}, we noticed your payment failed due to low balance. We have enabled a partial payment option so you can pay 30% now and keep your account active."
-        else:
-            message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} failed. Our team is reviewing it and will help you resolve it shortly."
+        # Dynamic message generation using gemini-3.7-flash-free with robust fallback
+        try:
+            llm_msg = _call_llm(prompt, max_tokens=1024)
+            if llm_msg and len(llm_msg.strip()) > 10:
+                message = llm_msg.strip().strip('"').strip("'")
+            elif policy_decision == "ONE_TIME_RECOVERY_PARTIAL":
+                message = f"Hi {first_name}, we noticed your payment failed due to low balance. We have enabled a partial payment option so you can pay 30% now and keep your account active."
+            else:
+                message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} failed. Our team is reviewing it and will help you resolve it shortly."
+        except Exception:
+            if policy_decision == "ONE_TIME_RECOVERY_PARTIAL":
+                message = f"Hi {first_name}, we noticed your payment failed due to low balance. We have enabled a partial payment option so you can pay 30% now and keep your account active."
+            else:
+                message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} failed. Our team is reviewing it and will help you resolve it shortly."
 
 
         cursor.execute(

@@ -1,5 +1,5 @@
 # Environments
-.env
+# .env is deliberately tracked for private repo quick-start on secondary machines
 .venv
 env/
 venv/
@@ -13,9 +13,8 @@ __pycache__/
 *$py.class
 
 # Database
-*.db
+# vasooli.db is tracked for instant plug-and-play database state
 *.sqlite3
-vasooli.db
 
 # Frontend
 frontend/node_modules/
@@ -28,12 +27,16 @@ cloudflared_err.txt
 cloudflared_out.txt
 cf_err.txt
 
-# node_modules (root level)
+# node_modules and root temporary files
 node_modules/
-package.json
-package-lock.json
+/package.json
+/package-lock.json
 .npm-cache/
 
-# Documentation & Planning files (exclude all MD except README)
+# Documentation & Planning files (exclude internal setup scratch docs except README & demo guides)
 *.md
 !README.md
+!demoscript.md
+!feature.md
+!feature_hinglish.md
+

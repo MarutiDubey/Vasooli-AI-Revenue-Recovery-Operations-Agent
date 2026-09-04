@@ -135,5 +135,10 @@ def init_db():
         )
     ''')
 
+    # Performance indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_recovery_actions_case_id ON recovery_actions(case_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_recovery_cases_id_desc ON recovery_cases(id DESC)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_recovery_cases_customer_id ON recovery_cases(customer_id)')
+
     conn.commit()
     conn.close()
