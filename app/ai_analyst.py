@@ -12,6 +12,13 @@ logger = logging.getLogger(__name__)
 TOKENIN_BASE_URL = os.getenv("TOKENIN_BASE_URL", "https://tokenin.my.id/v1/chat/completions")
 TOKENIN_MODEL = os.getenv("TOKENIN_MODEL", "nvidia/meta/llama-3.2-11b-vision-instruct")
 
+OMNIROUTE_BASE_URL = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1/chat/completions")
+OMNIROUTE_MODEL = os.getenv("OMNIROUTE_MODEL", "nvidia/nvidia/nemotron-3-super-120b-a12b")
+
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "omniroute")
+
 
 class RecoveryRecommendation(BaseModel):
     diagnosis: str
@@ -23,32 +30,52 @@ class RecoveryRecommendation(BaseModel):
     confidence: float
 
 
-def _get_api_key():
-    return os.getenv("TOKENIN_API_KEY", "sk-598ae28f02e3d276a0dedc0e0d981dd8b624c843")
-
-
 def _call_llm(prompt: str, max_tokens: int = 500) -> str | None:
     """
-    Shared helper to call the TokenIn LLM (Llama 3.2).
+    Calls configured LLM provider (OpenRouter or TokenIn).
     Returns the raw text content or None on failure.
     """
-    api_key = _get_api_key()
-    if not api_key:
-        return None
+    provider = os.getenv("LLM_PROVIDER", "openrouter").lower()
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    if provider == "omniroute":
+        url = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1/chat/completions")
+        model = os.getenv("OMNIROUTE_MODEL", "nvidia/openai/gpt-oss-20b")
+        headers = {
+            "Content-Type": "application/json",
+        }
+    elif provider == "openrouter":
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            return None
+        url = OPENROUTER_BASE_URL
+        model = os.getenv("OPENROUTER_MODEL", OPENROUTER_MODEL)
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:5173",
+            "X-Title": "Vasooli AI",
+        }
+    else:
+        api_key = os.getenv("TOKENIN_API_KEY")
+        if not api_key:
+            return None
+        url = TOKENIN_BASE_URL
+        model = os.getenv("TOKENIN_MODEL", TOKENIN_MODEL)
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
     data = {
-        "model": TOKENIN_MODEL,
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
         "max_tokens": max_tokens,
     }
     try:
-        resp = requests.post(TOKENIN_BASE_URL, headers=headers, json=data, timeout=60)
+        resp = requests.post(url, headers=headers, json=data, timeout=12)
         resp.raise_for_status()
+        resp.encoding = "utf-8"
         
         # Handle Server-Sent Events (SSE) stream format
         if resp.text.startswith("data:"):
@@ -61,15 +88,13 @@ def _call_llm(prompt: str, max_tokens: int = 500) -> str | None:
                         full_content += delta.get("content", "")
                     except:
                         pass
-            return full_content.strip()
+            cleaned = full_content.strip().replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+            return cleaned
             
-        try:
-            return resp.json()["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            logger.error(f"Failed to parse JSON. Raw response: {resp.text}")
-            return None
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
+        return raw.replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
     except Exception as e:
-        logger.error(f"LLM call failed: {e}")
+        logger.error(f"LLM call to {provider} ({model}) failed: {e}")
         return None
 
 
@@ -235,18 +260,30 @@ Instructions:
 - Be warm, empathetic. Do NOT use marketing language or urgency pressure.
 - Output ONLY the message text. No subject line. No greeting prefix.
 """
-        # Dynamic message generation using gemini-3.7-flash-free with robust fallback
+        # Dynamic message generation with robust context-aware messages
         try:
             llm_msg = _call_llm(prompt, max_tokens=1024)
             if llm_msg and len(llm_msg.strip()) > 10:
                 message = llm_msg.strip().strip('"').strip("'")
             elif policy_decision == "ONE_TIME_RECOVERY_PARTIAL":
                 message = f"Hi {first_name}, we noticed your payment failed due to low balance. We have enabled a partial payment option so you can pay 30% now and keep your account active."
+            elif policy_decision == "MONITOR":
+                message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} had a temporary bank server issue. No action needed—we'll retry automatically."
+            elif policy_decision == "PAYMENT_METHOD_RECOVERY":
+                message = f"Hi {first_name}, your card on file has expired. Please tap the link to update your payment method and avoid service interruption."
+            elif policy_decision == "ESCALATE":
+                message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} is being reviewed by our priority team who will contact you directly."
             else:
                 message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} failed. Our team is reviewing it and will help you resolve it shortly."
         except Exception:
             if policy_decision == "ONE_TIME_RECOVERY_PARTIAL":
                 message = f"Hi {first_name}, we noticed your payment failed due to low balance. We have enabled a partial payment option so you can pay 30% now and keep your account active."
+            elif policy_decision == "MONITOR":
+                message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} had a temporary bank server issue. No action needed—we'll retry automatically."
+            elif policy_decision == "PAYMENT_METHOD_RECOVERY":
+                message = f"Hi {first_name}, your card on file has expired. Please tap the link to update your payment method and avoid service interruption."
+            elif policy_decision == "ESCALATE":
+                message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} is being reviewed by our priority team who will contact you directly."
             else:
                 message = f"Hi {first_name}, your payment of ₹{amount_inr:,.0f} failed. Our team is reviewing it and will help you resolve it shortly."
 
@@ -267,17 +304,61 @@ Instructions:
 def _fallback_escalate(case_id: int, reason: str = "Unknown"):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    fallback_json = json.dumps({
-        "diagnosis": "insufficient_funds_detected",
-        "priority": "MEDIUM",
-        "recommended_action": "ONE_TIME_RECOVERY_PARTIAL",
-        "recovery_message": "Hi Demo, we noticed your payment failed due to low balance. We have enabled a partial payment option so you can pay 30% now and keep your account active.",
-        "recovery_score": 65
-    })
-    cursor.execute('''
-        UPDATE recovery_cases
-        SET ai_recommendation = ?, status = 'PLAN_READY', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ''', (fallback_json, case_id))
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute('''
+            SELECT rc.amount_at_risk, rc.diagnosis, c.opt_out 
+            FROM recovery_cases rc
+            JOIN customers c ON rc.customer_id = c.id
+            WHERE rc.id = ?
+        ''', (case_id,))
+        row = cursor.fetchone()
+        amount_at_risk = row[0] if row else 0
+        diag = (row[1] if row else "").lower()
+        opt_out = bool(row[2]) if row else False
+
+        if opt_out:
+            action = "STOP"
+            priority = "LOW"
+            diag_tag = "customer_opted_out"
+            reason_msg = "Customer opted out. Halting all recovery attempts."
+        elif "bank_decline" in diag or "outage" in diag or "bank" in diag:
+            action = "MONITOR"
+            priority = "LOW"
+            diag_tag = "temporary_bank_outage"
+            reason_msg = "Bank server decline detected. Recommend MONITOR to allow native retry without contacting customer."
+        elif "insufficient_funds" in diag or "balance" in diag:
+            action = "ONE_TIME_RECOVERY_PARTIAL"
+            priority = "MEDIUM"
+            diag_tag = "insufficient_funds_detected"
+            reason_msg = "Low balance detected. Recommending 30% partial payment link to retain customer."
+        elif "card_expired" in diag or "expired" in diag:
+            action = "PAYMENT_METHOD_RECOVERY"
+            priority = "HIGH"
+            diag_tag = "card_expired_detected"
+            reason_msg = "Mandate card expired. Requesting updated payment instrument."
+        elif amount_at_risk > 5000000:
+            action = "ESCALATE"
+            priority = "HIGH"
+            diag_tag = "high_value_transaction"
+            reason_msg = "Transaction > ₹50,000 exceeds automated threshold. Routing to VIP ops."
+        else:
+            action = "ESCALATE"
+            priority = "HIGH"
+            diag_tag = "unknown_gateway_error"
+            reason_msg = "Unmapped error code. Escalating for manual review."
+
+        fallback_json = json.dumps({
+            "diagnosis": diag_tag,
+            "priority": priority,
+            "recommended_action": action,
+            "reason": reason_msg,
+            "confidence": 0.95
+        })
+        cursor.execute('''
+            UPDATE recovery_cases
+            SET ai_recommendation = ?, status = 'PLAN_READY', updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (fallback_json, case_id))
+        conn.commit()
+    finally:
+        conn.close()

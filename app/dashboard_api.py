@@ -117,14 +117,21 @@ async def simulate_payment_failure():
 
     init_db()  # Ensure columns exist
 
+    global _sim_counter
+    try:
+        _sim_counter += 1
+    except NameError:
+        _sim_counter = 0
+
     FAILURE_SCENARIOS = [
-        ("insufficient_funds: The customer's bank account does not have enough balance.", 99900),
-        ("bank_decline: Temporary bank server outage.", 199900),
-        ("card_expired: The card used for the mandate has expired.", 49900),
-        ("unknown_error: Unrecognized gateway code 9982.", 999900),
-        ("bank_decline: Temporary bank server outage.", 49900),
+        ("bank_decline: Temporary bank server outage.", 99900, 0),
+        ("insufficient_funds: The customer's bank account does not have enough balance.", 99900, 0),
+        ("card_expired: The card used for the mandate has expired.", 49900, 0),
+        ("unknown_error: High-value enterprise account.", 9999000, 0),  # > 50k INR -> ESCALATE
+        ("customer_cancelled: Customer revoked mandate.", 99900, 1),    # opt_out = 1 -> STOP
     ]
-    diagnosis, amount = random.choice(FAILURE_SCENARIOS)
+    scenario = FAILURE_SCENARIOS[_sim_counter % len(FAILURE_SCENARIOS)]
+    diagnosis, amount, opt_out_flag = scenario[0], scenario[1], scenario[2]
     ts = int(time.time())
 
     raw_conn = sqlite3.connect(DB_PATH)
@@ -134,8 +141,8 @@ async def simulate_payment_failure():
         # Create a demo customer
         cursor.execute('''
             INSERT OR IGNORE INTO customers (external_id, name, email, contact, tenure_days, opt_out)
-            VALUES (?, ?, ?, ?, ?, 0)
-        ''', (f"demo_{ts}", f"Demo User {ts}", f"demo_{ts}@vasooli.test", "9876543210", random.randint(30, 900)))
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (f"demo_{ts}", f"Demo User {ts}", f"demo_{ts}@vasooli.test", "9876543210", random.randint(30, 900), opt_out_flag))
         raw_conn.commit()
 
         cursor.execute("SELECT id FROM customers WHERE external_id = ?", (f"demo_{ts}",))

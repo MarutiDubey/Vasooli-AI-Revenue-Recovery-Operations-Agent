@@ -36,13 +36,18 @@ def startup():
     init_db()
     logger.info("Database initialized successfully.")
 
+@app.get("/")
+def health_check():
+    return {"status": "ok", "service": "Vasooli AI Webhook Gateway", "endpoints": ["/webhook/razorpay"]}
+
 @app.post("/webhook/razorpay")
+@app.post("/")
 async def razorpay_webhook(
+    background_tasks: BackgroundTasks,
     request: Request,
     x_razorpay_signature: str = Header(None, alias="x-razorpay-signature"),
     x_razorpay_event_id: str = Header(None, alias="x-razorpay-event-id"),
-    x_vasooli_source: str = Header("RAZORPAY", alias="x-vasooli-source"),
-    background_tasks: BackgroundTasks = None
+    x_vasooli_source: str = Header("RAZORPAY", alias="x-vasooli-source")
 ):
     # Log incoming request
     logger.info(f"Received webhook event_id: {x_razorpay_event_id}")
@@ -96,6 +101,8 @@ async def razorpay_webhook(
         logger.info(f"Successfully stored new event {event_id} (Source: {x_vasooli_source})")
         if background_tasks:
             background_tasks.add_task(process_webhook_event, event_id, event_type, payload_dict)
+        else:
+            process_webhook_event(event_id, event_type, payload_dict)
     except sqlite3.IntegrityError:
         # Duplicate event_id, idempotent response (Requirement: return 200 within 5 seconds)
         logger.info(f"Duplicate event ignored: {event_id}")

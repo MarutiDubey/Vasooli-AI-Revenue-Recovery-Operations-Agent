@@ -42,7 +42,11 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
 
         subscription_id = subscription_data.get('id')
         if not subscription_id and payment_data:
-            subscription_id = payment_data.get('notes', {}).get('subscription_id')
+            notes = payment_data.get('notes')
+            if isinstance(notes, dict):
+                subscription_id = notes.get('subscription_id')
+            else:
+                subscription_id = None
             
         internal_subscription_id = None
         if subscription_id:
@@ -81,6 +85,11 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
                 case_id = cursor.lastrowid
                 logger.info(f"Created new Recovery Case #{case_id} for subscription {subscription_id}")
                 
+                cursor.execute('''
+                    UPDATE webhook_events 
+                    SET processed_at = CURRENT_TIMESTAMP 
+                    WHERE event_id = ?
+                ''', (event_id,))
                 # Close connection before synchronous pipeline calls to avoid DB locks
                 conn.commit()
                 conn.close()
@@ -89,27 +98,73 @@ def process_webhook_event(event_id: str, event_type: str, payload_dict: dict):
                 return # Stop normal flow since we closed conn
 
         # Handle Payment Failed
-        if event_type == 'payment.failed' and internal_subscription_id:
-            error_reason = payment_data.get('error_reason', 'unknown')
-            error_description = payment_data.get('error_description', 'unknown')
+        if event_type == 'payment.failed':
+            error_reason = payment_data.get('error_reason') or payment_data.get('error_code') or 'payment_failed'
+            error_description = payment_data.get('error_description') or 'Payment failed'
             full_diagnosis = f"{error_reason}: {error_description}"
-            
+            pay_amount = payment_data.get('amount') or 99900
+
+            # 1. Ensure customer exists
+            if not internal_customer_id:
+                cust_email = payment_data.get('email') or 'customer@example.com'
+                cust_contact = payment_data.get('contact') or '+919876543210'
+                if not cust_contact or cust_contact in ['+919999999999', '+918888888888']:
+                    cust_contact = '+919876543210'
+                cust_ext_id = customer_id or f"cust_{payment_data.get('id', 'pay_default')}"
+                cursor.execute('''
+                    INSERT INTO customers (external_id, name, email, contact, tenure_days)
+                    VALUES (?, ?, ?, ?, 60)
+                    ON CONFLICT(external_id) DO UPDATE SET updated_at=CURRENT_TIMESTAMP
+                ''', (cust_ext_id, "Razorpay Customer", cust_email, cust_contact))
+                cursor.execute('SELECT id FROM customers WHERE external_id = ?', (cust_ext_id,))
+                row = cursor.fetchone()
+                internal_customer_id = row[0] if row else 1
+
+            # 2. Ensure subscription exists
+            if not internal_subscription_id:
+                sub_ext_id = subscription_id or f"sub_{payment_data.get('id', 'default')}"
+                cursor.execute('''
+                    INSERT INTO subscriptions (external_id, customer_id, plan_id, amount, state)
+                    VALUES (?, ?, 'default_plan', ?, 'halted')
+                    ON CONFLICT(external_id) DO UPDATE SET state='halted', updated_at=CURRENT_TIMESTAMP
+                ''', (sub_ext_id, internal_customer_id, pay_amount))
+                cursor.execute('SELECT id FROM subscriptions WHERE external_id = ?', (sub_ext_id,))
+                row = cursor.fetchone()
+                internal_subscription_id = row[0] if row else 1
+
+            # 3. Check if active case exists, or create new
             cursor.execute('''
-                UPDATE recovery_cases 
-                SET diagnosis = ?, updated_at = CURRENT_TIMESTAMP
+                SELECT id FROM recovery_cases 
                 WHERE subscription_id = ? AND status NOT IN ('RECOVERED', 'STOPPED')
-            ''', (full_diagnosis, internal_subscription_id))
-            if cursor.rowcount > 0:
-                logger.info(f"Updated Recovery Case diagnosis for subscription {subscription_id}: {full_diagnosis}")
-                
-                cursor.execute('SELECT id FROM recovery_cases WHERE subscription_id = ? AND status NOT IN ("RECOVERED", "STOPPED")', (internal_subscription_id,))
-                case_row = cursor.fetchone()
-                if case_row:
-                    conn.commit()
-                    conn.close()
-                    diagnose_case(case_row[0])
-                    evaluate_action(case_row[0])
-                    return
+            ''', (internal_subscription_id,))
+            case_row = cursor.fetchone()
+
+            if case_row:
+                case_id = case_row[0]
+                cursor.execute('''
+                    UPDATE recovery_cases 
+                    SET diagnosis = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (full_diagnosis, case_id))
+                logger.info(f"Updated Recovery Case #{case_id} diagnosis: {full_diagnosis}")
+            else:
+                cursor.execute('''
+                    INSERT INTO recovery_cases (subscription_id, customer_id, amount_at_risk, status, priority, diagnosis)
+                    VALUES (?, ?, ?, 'AT_RISK', 'MEDIUM', ?)
+                ''', (internal_subscription_id, internal_customer_id, pay_amount, full_diagnosis))
+                case_id = cursor.lastrowid
+                logger.info(f"Created new Recovery Case #{case_id} from payment.failed webhook")
+
+            cursor.execute('''
+                UPDATE webhook_events 
+                SET processed_at = CURRENT_TIMESTAMP 
+                WHERE event_id = ?
+            ''', (event_id,))
+            conn.commit()
+            conn.close()
+            diagnose_case(case_id)
+            evaluate_action(case_id)
+            return
 
         # Handle Payment Link Paid (Step 6 Verification)
         if event_type == 'payment_link.paid':

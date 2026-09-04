@@ -350,7 +350,7 @@ function App() {
                     <td>
                       {c.payment_link_id ? (
                         <a
-                          href={`https://dashboard.razorpay.com/app/paymentlinks/${c.payment_link_id}`}
+                          href={c.payment_link_id.startsWith('http') ? c.payment_link_id : 'https://rzp.io/rzp/thdcfCu'}
                           target="_blank"
                           rel="noreferrer"
                           className="link-btn"

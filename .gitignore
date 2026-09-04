@@ -1,5 +1,7 @@
 # Environments
-# .env is deliberately tracked for private repo quick-start on secondary machines
+.env
+.env.*
+!.env.example
 .venv
 env/
 venv/
@@ -39,4 +41,9 @@ node_modules/
 !demoscript.md
 !feature.md
 !feature_hinglish.md
+
+# Scratch Scripts
+scripts/test_*.py
+scripts/clean_*.py
+
 
