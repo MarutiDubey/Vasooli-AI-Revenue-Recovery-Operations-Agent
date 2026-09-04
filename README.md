@@ -33,11 +33,11 @@
 
 Judges and evaluators can experience Vasooli AI's autonomous recovery pipeline live right now without installing anything:
 
-| Component | Live Endpoint / Access | Description |
+| Component | Access / Endpoint | Description |
 | :--- | :--- | :--- |
 | **Vasooli Control Tower** | `http://localhost:5173` | Real-time Operations Dashboard monitoring cases, churn probability scores, and recovery actions. |
-| **Interactive Test Checkout** | [`https://rzp.io/rzp/thdcfCu`](https://rzp.io/rzp/thdcfCu) | Live Razorpay Payment Link configured with Partial Payments enabled (₹999 total, ₹333 minimum). |
-| **Live Webhook Gateway** | `https://means-sleeping-custom-characteristic.trycloudflare.com/webhook/razorpay` | Cloudflare-tunneled webhook endpoint with cryptographic HMAC-SHA256 signature verification. |
+| **Interactive Test Checkout** | [`https://rzp.io/rzp/thdcfCu`](https://rzp.io/rzp/thdcfCu) | Live Razorpay Test Payment Link configured with Partial Payments enabled (₹999 total, ₹333 minimum). |
+| **Webhook Gateway** | `/webhook/razorpay` | Public Cloudflare/Webhook tunnel endpoint with cryptographic HMAC-SHA256 signature verification. |
 
 ### How to Test in 30 Seconds:
 1. Open the **Control Tower Dashboard** in your browser (`http://localhost:5173`).
