@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://youtu.be/your-video-link-here">
-    <img src="https://img.shields.io/badge/🎬_WATCH_1--MINUTE_LIVE_DEMO-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo Video" />
+    <img src="https://img.shields.io/badge/🎬_WATCH_LIVE_DEMO-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Live Demo" />
   </a>
 </p>
 
